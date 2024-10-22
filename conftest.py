@@ -1,13 +1,20 @@
+import random
 from unittest.mock import MagicMock
 
 import pytest
 
+from app_for_api.client import HttpClient, HttpMethods
+from app_for_api.orders_api import OrdersAPI
 from app_for_unit.car import Engine, FuelSystem, Car
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.firefox.service import Service as FirefoxService
+
+from data import API_APP_URL
+from helpers import get_stock_name
+
 
 @pytest.fixture
 def engine_mock():
@@ -30,6 +37,32 @@ def car(engine_mock, fuel_system_mock):
     return Car(engine_mock, fuel_system_mock)
 
 
+#API
+
+@pytest.fixture
+def http_client():
+    return HttpClient(API_APP_URL)
+
+
+@pytest.fixture
+def pairs_for_order():
+    pair = "".join(get_stock_name())
+    count = random.randint(1, 100)
+    return pair, count
+
+
+@pytest.fixture
+def create_order(http_client, pairs_for_order):
+    orders_api = OrdersAPI(http_client)
+    pair, count = pairs_for_order
+    response = orders_api.create_order(pair, count)
+    return response.json()
+
+
+@pytest.fixture
+def delete_order(http_client, create_order):
+    yield
+    http_client.send_request(HttpMethods.DELETE.value, f"/orders/{create_order['id']}")
 
 
 # WEB
